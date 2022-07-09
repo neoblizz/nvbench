@@ -628,8 +628,8 @@ void cupti_profiler::prepare_user_loop()
     // Each kernel is going to produce its own set of metrics
     params.range              = CUPTI_AutoRange; // CUPTI_UserRange;
     params.replayMode         = CUPTI_KernelReplay; // CUPTI_UserReplay;
-    params.maxRangesPerPass   = 64; // m_num_ranges;
-    params.maxLaunchesPerPass = 1; // m_num_ranges;
+    params.maxRangesPerPass   = 2; // m_num_ranges;
+    params.maxLaunchesPerPass = 2; // m_num_ranges;
 
     cupti_call(cuptiProfilerBeginSession(&params));
   }
@@ -640,8 +640,8 @@ void cupti_profiler::prepare_user_loop()
     params.structSize       = CUpti_Profiler_SetConfig_Params_STRUCT_SIZE;
     params.pConfig          = &m_config_image[0];
     params.configSize       = m_config_image.size();
-    params.minNestingLevel  = 1;
-    params.numNestingLevels = 1;
+    // params.minNestingLevel  = 1;
+    // params.numNestingLevels = 1;
     params.passIndex        = 0;
 
     cupti_call(cuptiProfilerSetConfig(&params));
@@ -650,11 +650,13 @@ void cupti_profiler::prepare_user_loop()
 
 void cupti_profiler::start_user_loop()
 {
-  {
-    CUpti_Profiler_BeginPass_Params params{};
-    params.structSize = CUpti_Profiler_BeginPass_Params_STRUCT_SIZE;
-    cupti_call(cuptiProfilerBeginPass(&params));
-  }
+  // User takes the responsibility of replaying
+  // the kernel launches:
+  // {
+  //   CUpti_Profiler_BeginPass_Params params{};
+  //   params.structSize = CUpti_Profiler_BeginPass_Params_STRUCT_SIZE;
+  //   cupti_call(cuptiProfilerBeginPass(&params));
+  // }
 
   {
     CUpti_Profiler_EnableProfiling_Params params{};
@@ -662,25 +664,25 @@ void cupti_profiler::start_user_loop()
     cupti_call(cuptiProfilerEnableProfiling(&params));
   }
 
-  {
-    CUpti_Profiler_PushRange_Params params{};
+  // {
+  //   CUpti_Profiler_PushRange_Params params{};
 
-    std::string rangeName = "nvbench";
+  //   std::string rangeName = "nvbench";
 
-    params.structSize = CUpti_Profiler_PushRange_Params_STRUCT_SIZE;
-    params.pRangeName = rangeName.c_str();
+  //   params.structSize = CUpti_Profiler_PushRange_Params_STRUCT_SIZE;
+  //   params.pRangeName = rangeName.c_str();
 
-    cupti_call(cuptiProfilerPushRange(&params));
-  }
+  //   cupti_call(cuptiProfilerPushRange(&params));
+  // }
 }
 
 void cupti_profiler::stop_user_loop()
 {
-  {
-    CUpti_Profiler_PopRange_Params params{};
-    params.structSize = CUpti_Profiler_PopRange_Params_STRUCT_SIZE;
-    cupti_call(cuptiProfilerPopRange(&params));
-  }
+  // {
+  //   CUpti_Profiler_PopRange_Params params{};
+  //   params.structSize = CUpti_Profiler_PopRange_Params_STRUCT_SIZE;
+  //   cupti_call(cuptiProfilerPopRange(&params));
+  // }
 
   {
     CUpti_Profiler_DisableProfiling_Params params{};
@@ -691,11 +693,12 @@ void cupti_profiler::stop_user_loop()
 
 bool cupti_profiler::is_replay_required()
 {
-  CUpti_Profiler_EndPass_Params params{};
-  params.structSize = CUpti_Profiler_EndPass_Params_STRUCT_SIZE;
-  cupti_call(cuptiProfilerEndPass(&params));
+  // CUpti_Profiler_EndPass_Params params{};
+  // params.structSize = CUpti_Profiler_EndPass_Params_STRUCT_SIZE;
+  // cupti_call(cuptiProfilerEndPass(&params));
 
-  return !params.allPassesSubmitted;
+  // For AutoRange, the replay is done automatically.
+  return false; // !params.allPassesSubmitted;
 }
 
 void cupti_profiler::process_user_loop()
@@ -773,6 +776,8 @@ std::vector<double> cupti_profiler::get_counter_values()
       params.metricEvalRequestStrideSize = sizeof(NVPW_MetricEvalRequest);
       params.pCounterDataImage           = m_data_image.data();
       params.counterDataImageSize        = m_data_image.size();
+      
+      // XXX: Needs to support multiple ranges for CUPTI Auto range.
       params.rangeIndex                  = range_id;
       params.isolated                    = true;
       params.pMetricValues               = &result[result_id++];
