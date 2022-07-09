@@ -626,10 +626,10 @@ void cupti_profiler::prepare_user_loop()
     params.pCounterDataScratchBuffer    = &m_data_scratch_buffer[0];
 
     // Each kernel is going to produce its own set of metrics
-    params.range              = CUPTI_UserRange;
-    params.replayMode         = CUPTI_UserReplay;
-    params.maxRangesPerPass   = m_num_ranges;
-    params.maxLaunchesPerPass = m_num_ranges;
+    params.range              = CUPTI_AutoRange; // CUPTI_UserRange;
+    params.replayMode         = CUPTI_KernelReplay; // CUPTI_UserReplay;
+    params.maxRangesPerPass   = 64; // m_num_ranges;
+    params.maxLaunchesPerPass = 1; // m_num_ranges;
 
     cupti_call(cuptiProfilerBeginSession(&params));
   }
